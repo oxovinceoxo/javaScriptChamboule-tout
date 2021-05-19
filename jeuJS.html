@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>jeux js matter</title>
+    
+</head>
+<body>
+    <script src="matter.js"></script>
+    <script>
+    let engine = Matter.Engine.create();
+    
+    let render = Matter.Render.create({
+        element: document.body,
+        engine:engine,
+        options : {
+            height: 667,
+            width: 2000,
+            wireframes: false
+        }
+    })
+
+//taille et position du sol x , y , largeur, epaisseur, en position fixe
+    let sol = Matter.Bodies.rectangle(1000,400,250,20,{
+          isStatic: true,
+        render: {
+            fillStyle: 'blue',
+            strokeStyle: 'red', 
+        }});
+    
+  
+
+    let mouse = Matter.Mouse.create(render.canvas);
+    let mouseConstraint = Matter.MouseConstraint.create(engine, {
+        mouse: mouse,
+        constraint: {
+            render: {visible: false}
+        }
+    });
+    render.mouse = mouse; 
+    
+//position de la balle x , y , dimension
+    let ball = Matter.Bodies.circle(300,500,20);
+    let sling = Matter.Constraint.create({
+//point de fixation du ressort x , y
+        pointA: {x:300, y:500},
+        bodyB: ball,
+//rigidité du ressort
+        stiffness: 0.05
+    });
+
+
+// position des blocs x,y, nombre de bloc x,y et separation entre
+    let stack = Matter.Composites.stack(890,50,4,4,0,0, function(x,y){
+// nombre de coté du polygon ainsi que la taille         
+        return Matter.Bodies.polygon(x,y,8,30, {
+            render: {
+                fillStyle: 'red',
+                strokeStyle: 'blue',
+                lineWidth: 3
+            }
+        });
+    });
+
+//lancement de la balle    
+    let firing = false;
+    Matter.Events.on(mouseConstraint,'enddrag', function(e){
+        if(e.body === ball) firing = true;
+    });
+//si le drapeau de tir est vrai et que la position de la balle est proche du point d'origine, 
+//alors nous libérerons la balle du ressort et la remplacerons par une nouvelle 
+
+    Matter.Events.on(engine,'afterUpdate', function() {
+  if (firing && Math.abs(ball.position.x-300) < 20 && Math.abs(ball.position.y-500) < 20) {
+      ball = Matter.Bodies.circle(300, 500, 20);
+      Matter.World.add(engine.world, ball);
+      sling.bodyB = ball;
+      firing = false;
+  }
+});
+
+    
+
+    Matter.World.add(engine.world,[stack,sol,ball,sling,mouseConstraint]);
+    Matter.Runner.run(engine);
+    Matter.Render.run(render);
+
+
+
+    </script>
+</body>
+</html>
